@@ -16,16 +16,20 @@ errorFlag = False
 while True:
     message = serM.readline()
     messageBuffer.append(message)
+    if monitor:
+        if messageBuffer.len() - set(messageBuffer).len() > 10:  # If duplicate messages in buffer > 10 flag full error
+            errorFlag = True
+            saveData(messageBuffer, startTime, errorFlag)  # Save data log
+
     if (messageBuffer.len() >= n) and (not monitor):  # Creates a queue like data structure
         messageBuffer.pop(0)
+
     elif (message in messageBuffer) and (not monitor):  # If multiple messages occur in a short period of time start
         # recording more data
         monitor = True
         startTime = datetime.datetime.now()  # Record error start time
-        if messageBuffer.len() - set(messageBuffer).len() > 10:  # If duplicate messages in buffer > 10 flag full error
-            errorFlag = True
-            saveData(messageBuffer, startTime, errorFlag)  # Save data log
+
     if keyboard.is_pressed('c'):
         print("Closing Serial")
-        serM.close()
+        serM.close()  # Close serial connection
         break
