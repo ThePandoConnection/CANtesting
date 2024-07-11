@@ -35,6 +35,7 @@ while True:
                 break
         if (errorFlagCount > 200):
             errorType = "Bus Off"
+            save_data(messageBuffer, startTime, errorType)
     if (messageBuffer.len() >= n) and (not monitor):  # Creates a queue like data structure
         messageBuffer.pop(0)
 
