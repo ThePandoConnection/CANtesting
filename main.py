@@ -2,8 +2,12 @@ import serial
 import keyboard
 import datetime
 
-def saveData(messageBuffer, startTime, errorFlag):
-    return 0
+
+def save_data(messageBuffer, startTime, errorType):
+    f = open("ErrorLog.txt", "a+")
+    f.write(str(errorType), str(startTime), str(messageBuffer))  # Write error to file
+    f.close()
+
 
 serM = serial.Serial("COM6", 115200)  # Open Serial Port for Message content
 
@@ -11,16 +15,24 @@ messageBuffer = []  # List to store past messages for logging
 n = 5  # Number of messages saved before event
 monitor = False  # Flag for first stage of incident detection
 startTime = 0
-errorFlag = False
+errorType = None
 
 while True:
-    message = serM.readline()
-    messageBuffer.append(message)
-    if monitor:
-        if messageBuffer.len() - set(messageBuffer).len() > 10:  # If duplicate messages in buffer > 10 flag full error
-            errorFlag = True
-            saveData(messageBuffer, startTime, errorFlag)  # Save data log
+    message = serM.readline()  # Read message from serial
 
+    if monitor:
+        errorCount = messageBuffer.len() - set(messageBuffer).len()
+        if (errorCount > 10) and (errorCount < 255): # If duplicate messages in buffer > 10 flag full error
+            errorType = "CAN Injection"  # Write potential error type
+            endTime = startTime - datetime.datetime.now()  # Record time since first error flag
+            if endTime > datetime.timedelta(minutes=10):  # If monitoring for > 10 mins break and record CAN Inject
+                # error
+                save_data(messageBuffer, startTime, errorType)  # Write error to text file
+                break
+        elif errorCount >= 255:  # If number of repeated messages > 255 record bus off error
+            errorType = "Bus off"
+            save_data(messageBuffer, startTime, errorType)  # Write error to text file
+            break
     if (messageBuffer.len() >= n) and (not monitor):  # Creates a queue like data structure
         messageBuffer.pop(0)
 
@@ -28,6 +40,8 @@ while True:
         # recording more data
         monitor = True
         startTime = datetime.datetime.now()  # Record error start time
+
+    messageBuffer.append(message)  # Add message to queue
 
     if keyboard.is_pressed('c'):
         print("Closing Serial")
