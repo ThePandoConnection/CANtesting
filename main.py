@@ -16,14 +16,14 @@ n = 5  # Number of messages saved before event
 monitor = False  # Flag for first stage of incident detection
 startTime = 0
 errorType = None
-errorFlag = "Ox111111"
+errorFlag = "0x111111"
 errorFlagCount = 0
 
 while True:
     message = serM.readline()  # Read message from serial
     if message == errorFlag:
         monitor = True
-        errorFlagCount += 1
+        errorFlagCount += 1  # Start counting error flags
     if monitor:
         errorCount = messageBuffer.len() - set(messageBuffer).len()
         if (errorCount > 10) and (errorCount < 255): # If duplicate messages in buffer > 10 flag full error
@@ -33,7 +33,7 @@ while True:
                 # error
                 save_data(messageBuffer, startTime, errorType)  # Write error to text file
                 break
-        if (errorFlagCount > 200):
+        if (errorFlagCount > 200):  # If error flag numbers are > 200 then report error
             errorType = "Bus Off"
             save_data(messageBuffer, startTime, errorType)
     if (messageBuffer.len() >= n) and (not monitor):  # Creates a queue like data structure
