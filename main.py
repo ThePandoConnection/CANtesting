@@ -21,28 +21,22 @@ errorFlagCount = 0
 
 while True:
     message = serM.readline()  # Read message from serial
-    if message == errorFlag:
-        monitor = True
+    if message == errorFlag:  # Start counting error flags after first appearance
+        monitor = True  # Start storing all messages (no current limit set)
+        startTime = datetime.datetime.now()  # Record time of first error
         errorFlagCount += 1  # Start counting error flags
     if monitor:
-        errorCount = messageBuffer.len() - set(messageBuffer).len()
-        if (errorCount > 10) and (errorCount < 255): # If duplicate messages in buffer > 10 flag full error
-            errorType = "CAN Injection"  # Write potential error type
-            endTime = startTime - datetime.datetime.now()  # Record time since first error flag
-            if endTime > datetime.timedelta(minutes=10):  # If monitoring for > 10 mins break and record CAN Inject
-                # error
-                save_data(messageBuffer, startTime, errorType)  # Write error to text file
-                break
-        if (errorFlagCount > 200):  # If error flag numbers are > 200 then report error
-            errorType = "Bus Off"
-            save_data(messageBuffer, startTime, errorType)
+        messageBuffer.append(message)  # Add message to log
+        if errorFlagCount > 255:  # If error flag numbers are > 255 then report error
+            errorType = "Physical Node Removal"
+            save_data(messageBuffer, startTime, errorType)  # Write data to non-volatile storage
+        if startTime - datetime.datetime.now() > datetime.timedelta(seconds=1):  # Check if time between now and last error flag > 1 second and if so stop monitoring
+            monitor = False
+            errorFlagCount = 0
+            messageBuffer.clear()
+
     if (messageBuffer.len() >= n) and (not monitor):  # Creates a queue like data structure
         messageBuffer.pop(0)
-
-    elif (message in messageBuffer) and (not monitor):  # If multiple messages occur in a short period of time start
-        # recording more data
-        monitor = True
-        startTime = datetime.datetime.now()  # Record error start time
 
     messageBuffer.append(message)  # Add message to queue
 
